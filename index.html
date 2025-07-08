@@ -288,7 +288,7 @@
             <!-- Main Menu -->
             <div id="mainMenu" class="screen">
                 <h1>FRUIT SLICE</h1>
-                <p>Slice the fruits, avoid the bombs! Swipe with your mouse or finger to slice. Don't let fruits fall!</p>
+                <p>Slice the fruits, avoid the bombs! Swipe with your mouse or finger to slice. You lose a life when you slice a bomb.</p>
                 <button id="startBtn" class="btn">START GAME</button>
                 <p>Desktop: Use mouse to slice<br>Mobile: Use touch to slice</p>
             </div>
@@ -480,13 +480,6 @@
                 
                 // Check if off-screen
                 if (this.y > canvas.height + 100) {
-                    if (!this.sliced && this.type === 'fruit') {
-                        lives--;
-                        updateLives();
-                        if (lives <= 0) {
-                            gameOver();
-                        }
-                    }
                     return false;
                 }
                 
@@ -535,6 +528,19 @@
                     ctx.beginPath();
                     ctx.arc(-this.radius * 0.3, -this.radius * 0.3, this.radius * 0.3, 0, Math.PI * 2);
                     ctx.fill();
+                    
+                    // Draw bomb danger stripes
+                    ctx.strokeStyle = '#ff5252';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(-this.radius * 0.6, 0);
+                    ctx.lineTo(this.radius * 0.6, 0);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(0, -this.radius * 0.6);
+                    ctx.lineTo(0, this.radius * 0.6);
+                    ctx.stroke();
                 }
                 
                 ctx.restore();
@@ -559,9 +565,16 @@
                         ));
                     }
                     
-                    lives = 0;
+                    // Lose a life for slicing a bomb
+                    lives--;
                     updateLives();
-                    gameOver();
+                    
+                    if (lives <= 0) {
+                        gameOver();
+                    }
+                    
+                    // Play explosion sound
+                    playExplosionSound();
                 } else {
                     // Fruit slice
                     score += 10 + Math.floor(combo / 3);
@@ -612,7 +625,7 @@
                         ));
                     }
                     
-                    // Play sound (using oscillator for pure JS sound)
+                    // Play sound
                     playSliceSound();
                 }
             }
@@ -700,6 +713,29 @@
                 }, 100);
             } catch (e) {
                 // Sound not supported in this environment
+            }
+        }
+        
+        function playExplosionSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.setValueAtTime(100, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.3);
+                gainNode.gain.value = 0.5;
+                
+                oscillator.start();
+                setTimeout(() => {
+                    oscillator.stop();
+                }, 300);
+            } catch (e) {
+                // Sound not supported
             }
         }
         
